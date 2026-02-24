@@ -1,76 +1,151 @@
-# SQL Data Warehouse From Scratch
+# SQL Data Warehouse (Medallion Architecture)
 
+A from-scratch implementation of a **Data Warehouse** using the **Medallion Architecture (Bronze → Silver → Gold)** pattern.
 
-## 🏗️ Data Architecture
-The project uses Medallion Architecture with  **Bronze**, **Silver**, and **Gold** layers:
+Demonstrates data ingestion, transformation, dimensional modeling (Star Schema), and data quality validation.
+
+---
+
+## 🏗️ Architecture
+
+The warehouse follows a **three-layer Medallion architecture**:
 
 ![Architecture](Resources/Diagram.jpeg)
 
-1. **Bronze Layer**: Stores raw data as-is from the source systems. Data is ingested from CSV Files into SQL Server Database.
-2. **Silver Layer**: This layer includes data cleansing, standardization, and normalization processes to prepare data for analysis.
-3. **Gold Layer**: Houses business-ready data modeled into a star schema required for reporting and analytics.
+### 🥉 Bronze Layer – Raw Data
+- Stores raw source data as-is.
+- Data ingested from CSV files.
+- No transformations or constraints applied.
+- Serves as a historical data backup.
 
-# Data Catalog for Gold Layer
+### 🥈 Silver Layer – Cleaned & Standardized
+- Data cleansing and normalization.
+- Deduplication and validation.
+- Standardized formats (dates, categories, codes).
+- Prepares data for analytical modeling.
 
-## Overview
-The Gold Layer is the business-level data representation, structured to support analytical and reporting use cases. It consists of **dimension tables** and **fact tables** for specific business metrics.
-
----
-
-### 1. **gold.dim_customers**
-- **Purpose:** Stores customer details enriched with demographic and geographic data.
-- **Columns:**
-
-| Column Name      | Data Type     | Description                                                                                   |
-|------------------|---------------|-----------------------------------------------------------------------------------------------|
-| customer_key     | INT           | Surrogate key uniquely identifying each customer record in the dimension table.               |
-| customer_id      | INT           | Unique numerical identifier assigned to each customer.                                        |
-| customer_number  | NVARCHAR(50)  | Alphanumeric identifier representing the customer, used for tracking and referencing.         |
-| first_name       | NVARCHAR(50)  | The customer's first name, as recorded in the system.                                         |
-| last_name        | NVARCHAR(50)  | The customer's last name or family name.                                                     |
-| country          | NVARCHAR(50)  | The country of residence for the customer (e.g., 'Australia').                               |
-| marital_status   | NVARCHAR(50)  | The marital status of the customer (e.g., 'Married', 'Single').                              |
-| gender           | NVARCHAR(50)  | The gender of the customer (e.g., 'Male', 'Female', 'n/a').                                  |
-| birthdate        | DATE          | The date of birth of the customer, formatted as YYYY-MM-DD (e.g., 1971-10-06).               |
-| create_date      | DATE          | The date and time when the customer record was created in the system|
+### 🥇 Gold Layer – Business-Ready (Star Schema)
+- Dimensional modeling (Facts & Dimensions).
+- Surrogate keys.
+- Optimized for reporting and analytics.
+- Can be queried directly by BI tools.
 
 ---
 
-### 2. **gold.dim_products**
-- **Purpose:** Provides information about the products and their attributes.
-- **Columns:**
+## 🧱 Data Model (Gold Layer)
 
-| Column Name         | Data Type     | Description                                                                                   |
-|---------------------|---------------|-----------------------------------------------------------------------------------------------|
-| product_key         | INT           | Surrogate key uniquely identifying each product record in the product dimension table.         |
-| product_id          | INT           | A unique identifier assigned to the product for internal tracking and referencing.            |
-| product_number      | NVARCHAR(50)  | A structured alphanumeric code representing the product, often used for categorization or inventory. |
-| product_name        | NVARCHAR(50)  | Descriptive name of the product, including key details such as type, color, and size.         |
-| category_id         | NVARCHAR(50)  | A unique identifier for the product's category, linking to its high-level classification.     |
-| category            | NVARCHAR(50)  | The broader classification of the product (e.g., Bikes, Components) to group related items.  |
-| subcategory         | NVARCHAR(50)  | A more detailed classification of the product within the category, such as product type.      |
-| maintenance_required| NVARCHAR(50)  | Indicates whether the product requires maintenance (e.g., 'Yes', 'No').                       |
-| cost                | INT           | The cost or base price of the product, measured in monetary units.                            |
-| product_line        | NVARCHAR(50)  | The specific product line or series to which the product belongs (e.g., Road, Mountain).      |
-| start_date          | DATE          | The date when the product became available for sale or use, stored in|
+The Gold layer follows a **Star Schema**:
+
+- **Dimension Tables**
+  - `gold.dim_customers`
+  - `gold.dim_products`
+
+- **Fact Table**
+  - `gold.fact_sales`
 
 ---
 
-### 3. **gold.fact_sales**
-- **Purpose:** Stores transactional sales data for analytical purposes.
-- **Columns:**
+# 📘 Data Catalog (Gold Layer)
 
-| Column Name     | Data Type     | Description                                                                                   |
-|-----------------|---------------|-----------------------------------------------------------------------------------------------|
-| order_number    | NVARCHAR(50)  | A unique alphanumeric identifier for each sales order (e.g., 'SO54496').                      |
-| product_key     | INT           | Surrogate key linking the order to the product dimension table.                               |
-| customer_key    | INT           | Surrogate key linking the order to the customer dimension table.                              |
-| order_date      | DATE          | The date when the order was placed.                                                           |
-| shipping_date   | DATE          | The date when the order was shipped to the customer.                                          |
-| due_date        | DATE          | The date when the order payment was due.                                                      |
-| sales_amount    | INT           | The total monetary value of the sale for the line item, in whole currency units (e.g., 25).   |
-| quantity        | INT           | The number of units of the product ordered for the line item (e.g., 1).                       |
-| price           | INT           | The price per unit of the product for the line item, in whole currency units (e.g., 25).      |
+## 1️⃣ `gold.dim_customers`
 
+**Purpose:** Customer dimension enriched with demographic and geographic attributes.
+
+| Column | Description |
+|--------|------------|
+| `customer_key` | Surrogate key |
+| `customer_id` | Business customer ID |
+| `customer_number` | Source system identifier |
+| `first_name`, `last_name` | Customer name |
+| `country` | Country of residence |
+| `marital_status` | Standardized marital status |
+| `gender` | Standardized gender (CRM primary, ERP fallback) |
+| `birthdate` | Date of birth |
+| `create_date` | Record creation date |
 
 ---
+
+## 2️⃣ `gold.dim_products`
+
+**Purpose:** Product dimension with category enrichment.
+
+| Column | Description |
+|--------|------------|
+| `product_key` | Surrogate key |
+| `product_id` | Business product ID |
+| `product_number` | Source product identifier |
+| `product_name` | Product name |
+| `category_id` | Category code |
+| `category`, `subcategory` | Category hierarchy |
+| `maintenance` | Maintenance flag |
+| `cost` | Product cost |
+| `product_line` | Product line (Mountain, Road, etc.) |
+| `start_date` | Active start date |
+
+---
+
+## 3️⃣ `gold.fact_sales`
+
+**Purpose:** Sales transaction fact table.
+
+| Column | Description |
+|--------|------------|
+| `order_number` | Sales order ID |
+| `product_key` | FK → `dim_products` |
+| `customer_key` | FK → `dim_customers` |
+| `order_date`, `shipping_date`, `due_date` | Transaction dates |
+| `sales_amount` | Total sales amount |
+| `quantity` | Units sold |
+| `price` | Unit price |
+
+---
+
+## 🔄 ETL Process Overview
+
+1. **Source → Bronze**
+   - Bulk load CSV files.
+   - Raw ingestion without transformations.
+
+2. **Bronze → Silver**
+   - Data cleansing (trim spaces, normalize codes).
+   - Deduplication using window functions.
+   - Date validation and correction.
+   - Standardization of categorical values.
+
+3. **Silver → Gold**
+   - Dimensional modeling.
+   - Surrogate key generation.
+   - Fact-to-dimension joins.
+   - Business-ready dataset creation.
+
+---
+
+## ✅ Data Quality Checks
+
+Validation scripts ensure:
+
+- No duplicate primary keys in Silver.
+- No negative or invalid numeric values.
+- Valid date ranges.
+- Fact-to-dimension referential integrity.
+- Standardized categorical values.
+
+---
+
+## 🛠️ Tech Stack
+
+- SQL (PostgreSQL / SQL Server compatible logic)
+- Window functions (`ROW_NUMBER`, `LEAD`)
+- Views & Stored Procedures
+- Star Schema modeling
+
+---
+
+## 🎯 Key Concepts Demonstrated
+
+- Medallion Architecture
+- ETL pipeline design
+- Data cleansing & standardization
+- Dimensional modeling (Star Schema)
+- Surrogate key generation
+- Data validation & integrity testing
